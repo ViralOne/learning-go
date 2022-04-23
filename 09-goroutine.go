@@ -11,6 +11,8 @@ func main() {
 	// event to happen, like a message from a server or a file to be read
 	// go is used to run a function in a separate thread of execution
 
+	task("Bob", "management")
+
 	go task("Milu", "devops")
 	go task("Adi", "developer")
 	go task("Mojo", "qa")
@@ -21,7 +23,7 @@ func main() {
 
 // create a function using multithread method
 func task(name string, job string) {
-	for i := 0; i <= 5; i++ {
+	for i := 0; i <= 2; i++ {
 		fmt.Println(i, " - ", name, "is", job)
 		time.Sleep(time.Second)
 	}

@@ -1,33 +1,35 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 )
 
+// function that would throw an error when the errorCodeument is 13
+func test_error(errorCode int) (int, error) {
+	if errorCode == 13 {
+		return -1, errors.New("Error, number recived: 13")
+	}
+	return errorCode, nil
+}
+
+// struct with an error code & message
+type errorTemplate struct {
+	errorCode    int
+	errorMessage string
+}
+
+func (e *errorTemplate) Error() string {
+	return fmt.Sprintf("%d - %s", e.errorCode, e.errorMessage)
+}
+
 func main() {
 
-	// testing error
-	err := notFoundError()
-	ErrorTemplate, ok := err.(*ErrorTemplate)
-	if ok {
-		fmt.Println("Error code: ", notFoundError.Code)
-		fmt.Println("Error message: ", notFoundError.Message)
-	}
-}
-
-// create a function for errors
-func (e *ErrorTemplate) Error() string {
-	return fmt.Sprintf("%s - %s", e.Code, e.Message)
-}
-
-type ErrorTemplate struct {
-	Code    string
-	Message string
-}
-
-func notFoundError() {
-	return &ErrorTemplate{
-		Code:    "404",
-		Message: "Not Found",
+	for _, i := range []int{7, 13} {
+		if r, e := test_error(i); e != nil {
+			fmt.Println("Faild:", e)
+		} else {
+			fmt.Println("Passed:", r)
+		}
 	}
 }
