@@ -20,8 +20,15 @@ func main() {
 	fmt.Println(wallet_address)
 	fmt.Println(wallet_private_key)
 
-	balance, _ := wallet.get_balance()
-	fmt.Println(balance)
+	airdorp_txhas, _ := wallet.RequestAirdrop(1*1e9)
+	fmt.Println(airdorp_txhas)
+	fmt.Println("Transaction URL:", "https://explorer.solana.com/tx/" + airdorp_txhas + "?cluster=devnet")
+
+	// balance, _ := check_balance(wallet_address.String(), rpc.DevnetRPCEndpoint)
+	// fmt.Println(balance/1e9)
+
+	balancee, _ := wallet.get_balance()
+	fmt.Println(balancee/1e9)
 }
 
 func create_wallet(RPCEndpoint string) Wallet {
@@ -72,3 +79,16 @@ func check_balance(wallet string, RPCEndpoint string) (uint64, error) {
 // How to use:
 // balance, _ := check_balance("9B5XszUGdMaxCZ7uSQhPzdks5ZQSmWxrmzCSvtJ6Ns6g", rpc.DevnetRPCEndpoint)
 // fmt.Println(balance)
+
+func (w Wallet) RequestAirdrop(amount uint64) (string, error) {
+	txhash, err := w.client.RequestAirdrop(
+		context.TODO(),
+		w.account.PublicKey.ToBase58(), // wallet address requesting airdrop
+		amount,                         // amount of SOL in lamport
+	)
+	if err != nil {
+			return "", err
+	}
+
+	return txhash, nil
+}
