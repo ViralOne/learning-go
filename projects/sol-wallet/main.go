@@ -3,6 +3,7 @@ package main
 import (
 		"context"
         "fmt"
+		"time"
 		"github.com/portto/solana-go-sdk/types"
         "github.com/portto/solana-go-sdk/client"
         "github.com/portto/solana-go-sdk/rpc"
@@ -24,11 +25,15 @@ func main() {
 	fmt.Println(airdorp_txhas)
 	fmt.Println("Transaction URL:", "https://explorer.solana.com/tx/" + airdorp_txhas + "?cluster=devnet")
 
-	// balance, _ := check_balance(wallet_address.String(), rpc.DevnetRPCEndpoint)
-	// fmt.Println(balance/1e9)
-
+	// Check balance of the wallet right after airdrop it will be 0 because I thnk it has no yet all the confirmations
 	balancee, _ := wallet.get_balance()
 	fmt.Println(balancee/1e9)
+
+	// Check balance of the wallet again after some time with other function
+	time.Sleep(time.Second * 15)
+	
+	balance, _ := check_balance(wallet_address.String(), rpc.DevnetRPCEndpoint)
+	fmt.Println(balance/1e9)
 }
 
 func create_wallet(RPCEndpoint string) Wallet {
