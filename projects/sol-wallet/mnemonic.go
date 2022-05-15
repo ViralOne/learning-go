@@ -28,6 +28,7 @@ func main(){
 
 func generate_wallet() {
   entropy, _ := bip39.NewEntropy(256)
+  // Generate 24 word mnemonic
   mnemonic, _ := bip39.NewMnemonic(entropy)
 
   // Generate a Bip32 HD wallet for the mnemonic and a user supplied password

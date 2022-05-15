@@ -1,12 +1,16 @@
 package main
 
 import (
-		"context"
-        "fmt"
-		"time"
-		"github.com/portto/solana-go-sdk/types"
-        "github.com/portto/solana-go-sdk/client"
-        "github.com/portto/solana-go-sdk/rpc"
+	"context"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/portto/solana-go-sdk/client"
+	"github.com/portto/solana-go-sdk/common"
+	"github.com/portto/solana-go-sdk/program/sysprog"
+	"github.com/portto/solana-go-sdk/rpc"
+	"github.com/portto/solana-go-sdk/types"
 )
 
 type Wallet struct {
@@ -21,19 +25,21 @@ func main() {
 	fmt.Println(wallet_address)
 	fmt.Println(wallet_private_key)
 
-	airdorp_txhas, _ := wallet.RequestAirdrop(1*1e9)
-	fmt.Println(airdorp_txhas)
-	fmt.Println("Transaction URL:", "https://explorer.solana.com/tx/" + airdorp_txhas + "?cluster=devnet")
+	airdorp_txhas, _ := wallet.RequestAirdrop(1 * 1e9)
+	fmt.Println("Transaction URL:", "https://explorer.solana.com/tx/"+airdorp_txhas+"?cluster=devnet")
 
 	// Check balance of the wallet right after airdrop it will be 0 because I thnk it has no yet all the confirmations
-	balancee, _ := wallet.get_balance()
-	fmt.Println(balancee/1e9)
+	balance, _ := wallet.get_balance()
+	fmt.Println("Balance: ", balance/1e9, "SOL")
 
-	// Check balance of the wallet again after some time with other function
-	time.Sleep(time.Second * 15)
-	
-	balance, _ := check_balance(wallet_address.String(), rpc.DevnetRPCEndpoint)
-	fmt.Println(balance/1e9)
+	// Check balance of the wallet after 30 seconds because this is approximately when it will have all the confirmations
+	time.Sleep(time.Second * 30)
+	balance, _ = wallet.get_balance()
+	fmt.Println("Balance after 30 sec: ", balance/1e9, "SOL")
+
+	// Sending 0.9SOL to the AirDrop address
+	transfer_log, _ := wallet.Transfer("9B5XszUGdMaxCZ7uSQhPzdks5ZQSmWxrmzCSvtJ6Ns6g", 1*1e9-1e8)
+	fmt.Println("Transaction URL:", "https://explorer.solana.com/tx/"+transfer_log+"?cluster=devnet")
 }
 
 func create_wallet(RPCEndpoint string) Wallet {
@@ -58,11 +64,11 @@ func import_wallet(privateKey []byte, RPCEndpoint string) (Wallet, error) {
 // Get balance of the wallet
 func (w Wallet) get_balance() (uint64, error) {
 	balance, err := w.client.GetBalance(
-			context.TODO(),
-			w.account.PublicKey.ToBase58(), // wallet to fetch balance for
+		context.TODO(),
+		w.account.PublicKey.ToBase58(), // wallet to fetch balance for
 	)
 	if err != nil {
-			return 0, nil
+		return 0, nil
 	}
 
 	return balance, nil
@@ -72,8 +78,8 @@ func (w Wallet) get_balance() (uint64, error) {
 func check_balance(wallet string, RPCEndpoint string) (uint64, error) {
 	c := client.NewClient(rpc.DevnetRPCEndpoint)
 	balance, err := c.GetBalance(
-			context.TODO(),
-			wallet, // wallet to fetch balance for
+		context.TODO(),
+		wallet, // wallet to fetch balance for
 	)
 	if err != nil {
 		panic(err)
@@ -92,7 +98,41 @@ func (w Wallet) RequestAirdrop(amount uint64) (string, error) {
 		amount,                         // amount of SOL in lamport
 	)
 	if err != nil {
-			return "", err
+		return "", err
+	}
+
+	return txhash, nil
+}
+
+func (w Wallet) Transfer(receiver string, amount uint64) (string, error) {
+	// fetch the most recent blockhash
+	response, err := w.client.GetRecentBlockhash(context.Background())
+	if err != nil {
+		log.Fatalf("failed to get recent blockhash, err: %v", err)
+	}
+
+	// make a transfer message with the latest block hash
+	tx, err := types.NewTransaction(types.NewTransactionParam{
+		Signers: []types.Account{w.account, w.account},
+		Message: types.NewMessage(types.NewMessageParam{
+			FeePayer:        w.account.PublicKey,
+			RecentBlockhash: response.Blockhash,
+			Instructions: []types.Instruction{
+				sysprog.Transfer(sysprog.TransferParam{
+					From:   w.account.PublicKey,
+					To:     common.PublicKeyFromString(receiver),
+					Amount: amount,
+				}),
+			},
+		}),
+	})
+	if err != nil {
+		log.Fatalf("failed to new a transaction, err: %v", err)
+	}
+	// send the transaction to the blockchain
+	txhash, err := w.client.SendTransaction(context.Background(), tx)
+	if err != nil {
+		return "", err
 	}
 
 	return txhash, nil
